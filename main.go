@@ -55,12 +55,13 @@ func main() {
 
 func runServer(db *sql.DB, apiToken string) (err error) {
 	router := gin.Default()
-
-	router.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/invoices")
-	})
+	router.HandleMethodNotAllowed = true
 
 	authorized := router.Group("/", TokenAuthMiddleware(apiToken))
+
+	authorized.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/invoices")
+	})
 
 	authorized.GET("/invoices/:id", func(c *gin.Context) {
 		var invoice Invoice
@@ -389,7 +390,6 @@ func connectDb(params map[string]string) (db *sql.DB, err error) {
 		return nil, err
 	}
 
-	// make sure connection is available
 	err = db.Ping()
 	if err != nil {
 		return nil, err
