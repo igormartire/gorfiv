@@ -33,7 +33,7 @@ const (
 
 type ServerConfig struct {
 	database map[string]string
-	accounts gin.Accounts
+	api      map[string]string
 }
 
 func main() {
@@ -48,41 +48,21 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := runServer(db, config.accounts); err != nil {
+	if err := runServer(db, config.api["token"]); err != nil {
 		panic(err)
 	}
 }
 
-func connectDb(params map[string]string) (db *sql.DB, err error) {
-	db, err = sql.Open("mysql", (&mysql.Config{
-		User:      params["user"],
-		Passwd:    params["password"],
-		DBName:    params["name"],
-		Collation: "utf8_general_ci",
-		ParseTime: true,
-	}).FormatDSN())
-
-	if err != nil {
-		return nil, err
-	}
-
-	// make sure connection is available
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
-func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
+func runServer(db *sql.DB, apiToken string) (err error) {
 	router := gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/invoices")
 	})
 
-	router.GET("/invoices/:id", func(c *gin.Context) {
+	authorized := router.Group("/", TokenAuthMiddleware(apiToken))
+
+	authorized.GET("/invoices/:id", func(c *gin.Context) {
 		var invoice Invoice
 
 		id := c.Param("id")
@@ -102,7 +82,7 @@ func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
 		}
 	})
 
-	router.GET("/invoices", func(c *gin.Context) {
+	authorized.GET("/invoices", func(c *gin.Context) {
 		var (
 			invoice           Invoice
 			invoices          []Invoice
@@ -253,7 +233,7 @@ func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
 		c.JSON(http.StatusOK, gin.H{"items": invoices})
 	})
 
-	router.POST("/invoices", func(c *gin.Context) {
+	authorized.POST("/invoices", func(c *gin.Context) {
 		document := c.PostForm("document")
 		description := c.PostForm("description")
 		amount, err := strconv.ParseFloat(c.PostForm("amount"), 64)
@@ -310,7 +290,7 @@ func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
 		c.Status(http.StatusCreated)
 	})
 
-	router.DELETE("/invoices/:id", func(c *gin.Context) {
+	authorized.DELETE("/invoices/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		stmt, err := db.Prepare("UPDATE Invoice SET IsActive=0, DeactiveAt=? WHERE Id=? AND IsActive=1")
 		if err != nil {
@@ -339,7 +319,7 @@ func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
 		}
 	})
 
-	router.PUT("/invoices/:id", func(c *gin.Context) {
+	authorized.PUT("/invoices/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		description, exist := c.GetPostForm("description")
 		if !exist {
@@ -390,8 +370,50 @@ func (c *ServerConfig) load() (err error) {
 		return err
 	} else {
 		c.database = viper.GetStringMapString("database")
-		c.accounts = viper.GetStringMapString("accounts")
+		c.api = viper.GetStringMapString("api")
 	}
 
 	return nil
+}
+
+func connectDb(params map[string]string) (db *sql.DB, err error) {
+	db, err = sql.Open("mysql", (&mysql.Config{
+		User:      params["user"],
+		Passwd:    params["password"],
+		DBName:    params["name"],
+		Collation: "utf8_general_ci",
+		ParseTime: true,
+	}).FormatDSN())
+
+	if err != nil {
+		return nil, err
+	}
+
+	// make sure connection is available
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func TokenAuthMiddleware(apiToken string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userToken := c.Request.FormValue("apiToken")
+
+		if userToken == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "API token required"})
+			c.Abort()
+			return
+		}
+
+		if userToken != apiToken {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API token"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
