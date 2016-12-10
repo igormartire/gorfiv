@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
+	"github.com/spf13/viper"
 )
 
 type Invoice struct {
@@ -30,16 +31,51 @@ const (
 	RootPath = "localhost:3000"
 )
 
+type ServerConfig struct {
+	database map[string]string
+	accounts gin.Accounts
+}
+
 func main() {
-	db, err := sql.Open("mysql",
-		"stone:password@/Stone?collation=utf8_general_ci&parseTime=true")
-	checkErr(err)
+	var config ServerConfig
+	if err := config.load(); err != nil {
+		panic(err)
+	}
+
+	db, err := connectDb(config.database)
+	if err != nil {
+		panic(err)
+	}
 	defer db.Close()
+
+	if err := runServer(db, config.accounts); err != nil {
+		panic(err)
+	}
+}
+
+func connectDb(params map[string]string) (db *sql.DB, err error) {
+	db, err = sql.Open("mysql", (&mysql.Config{
+		User:      params["user"],
+		Passwd:    params["password"],
+		DBName:    params["name"],
+		Collation: "utf8_general_ci",
+		ParseTime: true,
+	}).FormatDSN())
+
+	if err != nil {
+		return nil, err
+	}
 
 	// make sure connection is available
 	err = db.Ping()
-	checkErr(err)
+	if err != nil {
+		return nil, err
+	}
 
+	return db, nil
+}
+
+func runServer(db *sql.DB, accounts gin.Accounts) (err error) {
 	router := gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
@@ -122,11 +158,9 @@ func main() {
 		if pageNumber < lastPageNumber {
 			//next
 			values.Set("page", strconv.Itoa(pageNumber+1))
-			fmt.Println(values.Encode())
 			linksHeader = append(linksHeader, linkPrefix+values.Encode()+">; rel=\"next\"")
 			//last
 			values.Set("page", strconv.Itoa(lastPageNumber))
-			fmt.Println(values.Encode())
 			linksHeader = append(linksHeader, linkPrefix+values.Encode()+">; rel=\"last\"")
 		}
 		if pageNumber > 1 {
@@ -135,7 +169,6 @@ func main() {
 			linksHeader = append(linksHeader, linkPrefix+values.Encode()+">; rel=\"first\"")
 			//prev
 			values.Set("page", strconv.Itoa(pageNumber-1))
-			fmt.Println(values.Encode())
 			linksHeader = append(linksHeader, linkPrefix+values.Encode()+">; rel=\"prev\"")
 		}
 
@@ -189,8 +222,6 @@ func main() {
 			queryStr += " ORDER BY " + strings.Join(orderByStrs, ", ")
 		}
 		queryStr += fmt.Sprint(" LIMIT ", (pageNumber-1)*numResultsPerPage, ", ", numResultsPerPage)
-
-		fmt.Println(queryStr)
 
 		rows, err := db.Query(queryStr)
 
@@ -346,10 +377,21 @@ func main() {
 	})
 
 	router.Run(":3000")
+
+	return nil
 }
 
-func checkErr(err error) {
+func (c *ServerConfig) load() (err error) {
+	viper.AddConfigPath("config")
+	viper.SetConfigName("app")
+
+	err = viper.ReadInConfig()
 	if err != nil {
-		panic(err)
+		return err
+	} else {
+		c.database = viper.GetStringMapString("database")
+		c.accounts = viper.GetStringMapString("accounts")
 	}
+
+	return nil
 }
