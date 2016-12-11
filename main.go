@@ -12,6 +12,7 @@ import (
 type Config struct {
 	database map[string]string
 	api      map[string]string
+	server   map[string]string
 }
 
 func main() {
@@ -28,7 +29,12 @@ func main() {
 
 	mysqlRepo := models.NewSQLRepo(db)
 
-	server.Run(server.NewEnv(mysqlRepo), config.api["token"])
+	err = server.
+		New(server.NewEnv(mysqlRepo), config.api["token"]).
+		Run(config.server["address"])
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *Config) load() (err error) {
@@ -41,6 +47,7 @@ func (c *Config) load() (err error) {
 	} else {
 		c.database = viper.GetStringMapString("database")
 		c.api = viper.GetStringMapString("api")
+		c.server = viper.GetStringMapString("server")
 	}
 
 	return nil

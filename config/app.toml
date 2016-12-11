@@ -5,3 +5,6 @@ password = "password"
 
 [api]
 token = "sweetpotato"
+
+[server]
+address = "localhost:3000"

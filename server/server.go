@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Run(env *Env, apiToken string) {
+func New(env *Env, apiToken string) *gin.Engine {
 	router := gin.Default()
 	router.HandleMethodNotAllowed = true
 
@@ -22,5 +22,5 @@ func Run(env *Env, apiToken string) {
 	authorized.PUT("/invoices/:id", validatePostFormMiddleware, env.invoicesPut)
 	authorized.DELETE("/invoices/:id", env.invoicesDelete)
 
-	router.Run("localhost:3000")
+	return router
 }
