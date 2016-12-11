@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -70,6 +69,7 @@ func prepareQueryOptions(c *gin.Context) {
 
 	var opts = models.QueryOptions{
 		Filters: map[string]string{},
+		Sorts:   []models.Sort{},
 		Pagination: models.Pagination{
 			Page:    1,
 			PerPage: 5,
@@ -105,8 +105,6 @@ func prepareQueryOptions(c *gin.Context) {
 			}
 		}
 	}
-
-	fmt.Println(opts)
 
 	c.Set("QueryOptions", &opts)
 	c.Next()
@@ -150,7 +148,7 @@ func validateFormValuesForQueryOptions(values url.Values) (errors []string) {
 						f = f[1:]
 					}
 					if f != "document" && f != "referenceMonth" && f != "referenceYear" {
-						errors = append(errors, "malformed sort query: can only order by document, referenceMonth and referenceYear")
+						errors = append(errors, "malformed sort query. Correct syntax: sort=[-](document|referenceMonth|referenceYear)[,...]")
 					}
 				}
 			}

@@ -21,3 +21,16 @@ type Invoice struct {
 	IsActive       bool           `json:"isActive"`
 	DeactiveAt     mysql.NullTime `json:"deactiveAt"`
 }
+
+func (i1 *Invoice) Equals(i2 *Invoice) bool {
+	return i1.Id == i2.Id &&
+		i1.CreatedAt == i2.CreatedAt &&
+		i1.ReferenceMonth == i2.ReferenceMonth &&
+		i1.ReferenceYear == i2.ReferenceYear &&
+		i1.Document == i2.Document &&
+		i1.Description == i2.Description &&
+		i1.Amount == i2.Amount &&
+		i1.IsActive == i2.IsActive &&
+		i1.DeactiveAt.Valid == i2.DeactiveAt.Valid &&
+		!(i1.DeactiveAt.Valid && (i1.DeactiveAt.Time != i2.DeactiveAt.Time))
+}

@@ -18,8 +18,8 @@ func New(env *Env, apiToken string) *gin.Engine {
 
 	authorized.GET("/invoices", prepareQueryOptions, env.invoicesIndex)
 	authorized.GET("/invoices/:id", env.invoicesShow)
-	authorized.POST("/invoices", env.invoicesPost)
-	authorized.PUT("/invoices/:id", validatePostFormMiddleware, env.invoicesPut)
+	authorized.POST("/invoices", validatePostFormMiddleware, env.invoicesPost)
+	authorized.PUT("/invoices/:id", env.invoicesPut)
 	authorized.DELETE("/invoices/:id", env.invoicesDelete)
 
 	return router

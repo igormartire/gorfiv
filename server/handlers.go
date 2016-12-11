@@ -1,7 +1,6 @@
 package server
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -33,7 +32,7 @@ func (env *Env) invoicesShow(c *gin.Context) {
 	invoice, err := env.repo.GetInvoiceById(id)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == models.InvoiceNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "there is no resource with the specified id",
 			})
@@ -43,7 +42,7 @@ func (env *Env) invoicesShow(c *gin.Context) {
 		}
 	} else {
 		c.JSON(http.StatusOK, gin.H{
-			"entity": invoice,
+			"item": invoice,
 		})
 	}
 }
@@ -89,19 +88,13 @@ func (env *Env) invoicesPut(c *gin.Context) {
 		return
 	}
 
-	nRows, err := env.repo.UpdateInvoice(id, newDescription)
+	_, err = env.repo.UpdateInvoice(id, newDescription)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	if nRows == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "there is no resource with the specified id",
-		})
-	} else {
-		c.Status(http.StatusNoContent)
-	}
+	c.Status(http.StatusNoContent)
 }
 
 func (env *Env) invoicesPost(c *gin.Context) {
@@ -135,15 +128,19 @@ func (env *Env) invoicesIndex(c *gin.Context) {
 
 	opts := getValue.(*models.QueryOptions)
 
-	fmt.Println(opts)
-
-	numActiveRecords, err := env.repo.CountInvoices()
+	totalCount, err := env.repo.CountInvoices(opts)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	var lastPageNumber = opts.Pagination.LastPageNumber(numActiveRecords)
+	if totalCount == 0 {
+		c.Header("X-Total-Count", "0")
+		c.JSON(http.StatusOK, gin.H{"items": []*models.Invoice{}})
+		return
+	}
+
+	var lastPageNumber = opts.Pagination.LastPageNumber(totalCount)
 	if opts.Pagination.Page < 1 || opts.Pagination.Page > lastPageNumber {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid page number passed as parameter.",
@@ -177,7 +174,7 @@ func (env *Env) invoicesIndex(c *gin.Context) {
 		linksHeader = append(linksHeader, linkPrefix+values.Encode()+">; rel=\"prev\"")
 	}
 
-	c.Header("X-Total-Count", strconv.Itoa(numActiveRecords))
+	c.Header("X-Total-Count", strconv.Itoa(totalCount))
 	c.Header("Link", strings.Join(linksHeader, ", "))
 	c.JSON(http.StatusOK, gin.H{"items": invoices})
 }
