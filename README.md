@@ -42,11 +42,42 @@ A parte do servidor eu praticamente fiz tudo ontem e hoje e mesmo assim acho que
 
 ### GET /invoices/:id
 
+`localhost:3000/invoices/1?apiToken=sweetpotato`  
+Response: `200` ou `404`  
+```
+{
+  "item": {
+    "id": 1,
+    "createdAt": "2016-12-11T18:46:12Z",
+    "referenceMonth": 12,
+    "referenceYear": 2016,
+    ..
+  }
+}
+```
+
 ### POST /invoices
+
+`localhost:3000/invoices?apiToken=sweetpotato`  
+```
+Body(form-data): {
+  document: JdLCkji29SKl
+  description: Lorem ipsum dolor sit amet.
+  amount: 999.99
+}
+```  
+Response: `201` Created  
+Header `Location:` localhost:3000/invoices/42
 
 ### PUT /invoices/:id
 
+`localhost:3000/invoices/1?description=abc&apiToken=sweetpotato`  
+Response: `204` No Content
+
 ### DELETE /invoices/:id
+
+`localhost:3000/invoices/1?apiToken=sweetpotato`  
+Response: `204` ou `404`  
 
 ## Pontos a destacar:
 
