@@ -6,7 +6,7 @@ Muito legal esse desafio. Aprendi demais. :sparkler:
 
 Infelizmente, não tive tanto tempo quanto eu gostaria porque esse final de semestre está muito apertado (leia-se: dormir mais de 3 horas por dia é luxo).
 
-A parte do servidor web eu praticamente fiz tudo ontem e hoje e mesmo assim acho que o resultado ficou bem legal! :smiley:
+A parte do servidor eu praticamente fiz tudo ontem e hoje e mesmo assim acho que o resultado ficou bem legal! :smiley:
 
 ## API Syntax:
 
