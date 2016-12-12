@@ -11,7 +11,7 @@ A parte do servidor web eu praticamente fiz tudo ontem e hoje e mesmo assim acho
 ## API Syntax:
 
 ### GET /invoices
-  Parâmetros de query:
+#### Parâmetros de query:
   - `apiToken`: token de autenticação
   - `document`: filtra os invoices pelo campo `Document`
     - validação de tamanho máximo: 14
@@ -19,26 +19,27 @@ A parte do servidor web eu praticamente fiz tudo ontem e hoje e mesmo assim acho
   - `referenceMonth`, `referenceYear`: filtra os invoices pelo capo ReferenceMonth e ReferenceYear
     - validação de tipo (verifica se é inteiro)
     - validação de parâmetro duplicado
-  - `sort`: define a ordenação do resultado. Campos separados por vírgulas. Uso de `-` para indicar ordem decrescente.
-    - verificação da sintaxe
-        - verificação dos campos selecionados (apenas `document`, `ReferenceMonth` e `ReferenceYear` são permitidos)
-    - validação de parâmetro duplicado  
+  - `sort`: define a ordenação do resultado. Campos separados por vírgulas. Uso de `-` para indicar ordem decrescente
+    * verificação da sintaxe
+    * verificação dos campos selecionados (apenas `document`, `ReferenceMonth` e `ReferenceYear` são permitidos)
+    * validação de parâmetro duplicado  
   - `page`, `perPage`: controlam a paginação
-    - default: `page`=1, `perPage`=5
-      - validação do número de página (1 <= `page` <= `lastPage`) (note que o valor de `lastPage` depende dos invoices na base, de `perPage` e dos filtros também)
+    * default: `page`=1, `perPage`=5
+    * validação do número de página (1 <= `page` <= `lastPage`) (note que o valor de `lastPage` depende dos invoices na base, de `perPage` e dos filtros também)
+    * Resposta com Header `X-Count-Total` para indicar quantidade total de invoices achados pela busca, independente de quanto são mostrados na página atual.
+    * Resposta com Header `Link` indicando URI para próxima página, última página, primeira página e página anterior, quando aplicável.
+    
+#### Respostas:
+  - `200, { "items": [listaDeInvoices] }`
+  - `400, { "error": mensagemDeErro }`
+  - `500`
+    
+#### Exemplos:
+  - `localhost:3000/invoices?apiToken=sweetpotato`
+  - `localhost:3000/invoices?document=JAkv92kLAFc&apiToken=sweetpotato`
+  - `localhost:3000/invoices?sort=-referenceMonth&apiToken=sweetpotato`
+  - `localhost:3000/invoices?document=JAkv92kLAFc&sort=-referenceYear,referenceMonth,-document&page=2&perPage=12&apiToken=sweetpotato`
 
-  - Resposta com Header `X-Count-Total` para indicar quantidade total de invoices achados pela busca, independente de quanto são mostrados na página atual.
-  - Resposta com Header `Link` indicando URI para próxima página, última página, primeira página e página anterior, quando aplicável.
-  - Respostas:
-    - `200, { "items": [listaDeInvoices] }`
-    - `400, { "error": mensagemDeErro }`
-    - `500`
-  - Exemplos:
-    - `localhost:3000/invoices?apiToken=sweetpotato`
-    - `localhost:3000/invoices?document=JAkv92kLAFc&apiToken=sweetpotato`
-    - `localhost:3000/invoices?sort=-referenceMonth&apiToken=sweetpotato`
-    - `localhost:3000/invoices?document=JAkv92kLAFc&sort=-referenceYear,referenceMonth,-document&page=2&perPage=12&apiToken=sweetpotato`
-    
 ### GET /invoices/:id
 
 ### POST /invoices
